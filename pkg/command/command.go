@@ -42,6 +42,7 @@ type runner interface {
 type ExecRunner interface {
 	runner
 	RunExecutable(executable string, params ...string) error
+	RunExecutableAsUser(executable string, user, group uint32, params ...string) error
 	RunExecutableInBackground(executable string, params ...string) (Execution, error)
 }
 
@@ -130,6 +131,35 @@ func (c *Command) RunExecutable(executable string, params ...string) error {
 	c.prepareOut()
 
 	cmd := ExecCommand(executable, params...)
+
+	if len(c.dir) > 0 {
+		cmd.Dir = c.dir
+	}
+
+	log.Entry().Infof("running command: %v %v", executable, strings.Join(params, (" ")))
+
+	appendEnvironment(cmd, c.env)
+
+	if c.stdin != nil {
+		cmd.Stdin = c.stdin
+	}
+
+	if err := c.runCmd(cmd); err != nil {
+		return errors.Wrapf(err, "running command '%v' failed", executable)
+	}
+	return nil
+}
+
+func (c *Command) RunExecutableAsUser(executable string, user, group uint32, params ...string) error {
+	c.prepareOut()
+
+	cmd := ExecCommand(executable, params...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Credential: &syscall.Credential{
+			Uid: user,
+			Gid: group,
+		},
+	}
 
 	if len(c.dir) > 0 {
 		cmd.Dir = c.dir

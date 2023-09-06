@@ -70,6 +70,10 @@ func (m *ExecMockRunner) RunExecutable(e string, p ...string) error {
 	return m.handleCall(c, m.StdoutReturn, m.ShouldFailOnCommand, m.stdout)
 }
 
+func (m *ExecMockRunner) RunExecutableAsUser(e string, u, g uint32, p ...string) error {
+	return m.RunExecutable(e, p...)
+}
+
 func (m *ExecMockRunner) GetExitCode() int {
 	return m.ExitCode
 }
